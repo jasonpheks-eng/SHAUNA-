@@ -1,0 +1,327 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Shared security primitives
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'jasonpheks@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'photoURL', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.email is string && data.email.size() > 0 && data.email.size() <= 254
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 120))
+        && (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 512))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidBoutiqueConfig(data) {
+      return data.keys().hasAll(['boutique_name', 'whatsapp_number', 'currency_symbol', 'updatedAt'])
+        && data.keys().hasOnly([
+          'whatsapp_number', 'boutique_name', 'tagline', 'hero_description',
+          'address', 'city_region', 'opening_hours', 'currency_symbol', 'currency_code',
+          'instagram_url', 'tiktok_url', 'pinterest_url', 'whatsapp_default_message',
+          'hero_bg_color', 'hero_accent_color', 'hero_text_color',
+          'navbar_bg_color', 'navbar_text_color', 'details_bg_color', 'details_text_color',
+          'services_bg_color', 'services_card_bg_color', 'services_text_color',
+          'booking_bg_color', 'booking_card_bg_color', 'booking_accent_color',
+          'about_bg_color', 'about_text_color', 'experiences_bg_color',
+          'experiences_title_color', 'experiences_subtitle_color',
+          'footer_bg_color', 'footer_text_color',
+          'hero_gradient_enabled', 'hero_gradient_start', 'hero_gradient_end',
+          'gooey_color_1', 'gooey_color_2', 'theme_preset',
+          'hero_font_size', 'hero_description_line_height', 'hero_description_align',
+          'hero_button_text', 'hero_scroll_text',
+          'hero_gooey_sensitivity', 'services_gooey_sensitivity', 'booking_gooey_sensitivity', 'experiences_gooey_sensitivity',
+          'hero_gooey_opacity', 'services_gooey_opacity', 'booking_gooey_opacity', 'experiences_gooey_opacity',
+          'updatedAt'
+        ])
+        && data.boutique_name is string && data.boutique_name.size() > 0 && data.boutique_name.size() <= 120
+        && data.whatsapp_number is string && data.whatsapp_number.size() > 0 && data.whatsapp_number.size() <= 40
+        && data.currency_symbol is string && data.currency_symbol.size() > 0 && data.currency_symbol.size() <= 16
+        && (!('tagline' in data) || (data.tagline is string && data.tagline.size() <= 200))
+        && (!('hero_description' in data) || (data.hero_description is string && data.hero_description.size() <= 1000))
+        && (!('address' in data) || (data.address is string && data.address.size() <= 240))
+        && (!('city_region' in data) || (data.city_region is string && data.city_region.size() <= 120))
+        && (!('opening_hours' in data) || (data.opening_hours is string && data.opening_hours.size() <= 240))
+        && (!('currency_code' in data) || (data.currency_code is string && data.currency_code.size() <= 16))
+        && (!('instagram_url' in data) || (data.instagram_url is string && data.instagram_url.size() <= 512))
+        && (!('tiktok_url' in data) || (data.tiktok_url is string && data.tiktok_url.size() <= 512))
+        && (!('pinterest_url' in data) || (data.pinterest_url is string && data.pinterest_url.size() <= 512))
+        && (!('whatsapp_default_message' in data) || (data.whatsapp_default_message is string && data.whatsapp_default_message.size() <= 500))
+        && (!('hero_bg_color' in data) || (data.hero_bg_color is string && data.hero_bg_color.size() <= 32))
+        && (!('hero_accent_color' in data) || (data.hero_accent_color is string && data.hero_accent_color.size() <= 32))
+        && (!('hero_text_color' in data) || (data.hero_text_color is string && data.hero_text_color.size() <= 32))
+        && (!('navbar_bg_color' in data) || (data.navbar_bg_color is string && data.navbar_bg_color.size() <= 32))
+        && (!('navbar_text_color' in data) || (data.navbar_text_color is string && data.navbar_text_color.size() <= 32))
+        && (!('details_bg_color' in data) || (data.details_bg_color is string && data.details_bg_color.size() <= 32))
+        && (!('details_text_color' in data) || (data.details_text_color is string && data.details_text_color.size() <= 32))
+        && (!('services_bg_color' in data) || (data.services_bg_color is string && data.services_bg_color.size() <= 32))
+        && (!('services_card_bg_color' in data) || (data.services_card_bg_color is string && data.services_card_bg_color.size() <= 32))
+        && (!('services_text_color' in data) || (data.services_text_color is string && data.services_text_color.size() <= 32))
+        && (!('booking_bg_color' in data) || (data.booking_bg_color is string && data.booking_bg_color.size() <= 32))
+        && (!('booking_card_bg_color' in data) || (data.booking_card_bg_color is string && data.booking_card_bg_color.size() <= 32))
+        && (!('booking_accent_color' in data) || (data.booking_accent_color is string && data.booking_accent_color.size() <= 32))
+        && (!('about_bg_color' in data) || (data.about_bg_color is string && data.about_bg_color.size() <= 32))
+        && (!('about_text_color' in data) || (data.about_text_color is string && data.about_text_color.size() <= 32))
+        && (!('experiences_bg_color' in data) || (data.experiences_bg_color is string && data.experiences_bg_color.size() <= 32))
+        && (!('experiences_title_color' in data) || (data.experiences_title_color is string && data.experiences_title_color.size() <= 32))
+        && (!('experiences_subtitle_color' in data) || (data.experiences_subtitle_color is string && data.experiences_subtitle_color.size() <= 32))
+        && (!('footer_bg_color' in data) || (data.footer_bg_color is string && data.footer_bg_color.size() <= 32))
+        && (!('footer_text_color' in data) || (data.footer_text_color is string && data.footer_text_color.size() <= 32))
+        && (!('hero_gradient_enabled' in data) || data.hero_gradient_enabled is bool)
+        && (!('hero_gradient_start' in data) || (data.hero_gradient_start is string && data.hero_gradient_start.size() <= 32))
+        && (!('hero_gradient_end' in data) || (data.hero_gradient_end is string && data.hero_gradient_end.size() <= 32))
+        && (!('gooey_color_1' in data) || (data.gooey_color_1 is string && data.gooey_color_1.size() <= 32))
+        && (!('gooey_color_2' in data) || (data.gooey_color_2 is string && data.gooey_color_2.size() <= 32))
+        && (!('theme_preset' in data) || (data.theme_preset is string && data.theme_preset.size() <= 40))
+        && (!('hero_font_size' in data) || (data.hero_font_size is number && data.hero_font_size >= 16 && data.hero_font_size <= 160))
+        && (!('hero_description_line_height' in data) || (data.hero_description_line_height is number && data.hero_description_line_height >= 10 && data.hero_description_line_height <= 80))
+        && (!('hero_description_align' in data) || data.hero_description_align in ['left', 'center', 'right'])
+        && (!('hero_button_text' in data) || (data.hero_button_text is string && data.hero_button_text.size() <= 80))
+        && (!('hero_scroll_text' in data) || (data.hero_scroll_text is string && data.hero_scroll_text.size() <= 80))
+        && (!('hero_gooey_sensitivity' in data) || data.hero_gooey_sensitivity is number)
+        && (!('services_gooey_sensitivity' in data) || data.services_gooey_sensitivity is number)
+        && (!('booking_gooey_sensitivity' in data) || data.booking_gooey_sensitivity is number)
+        && (!('experiences_gooey_sensitivity' in data) || data.experiences_gooey_sensitivity is number)
+        && (!('hero_gooey_opacity' in data) || data.hero_gooey_opacity is number)
+        && (!('services_gooey_opacity' in data) || data.services_gooey_opacity is number)
+        && (!('booking_gooey_opacity' in data) || data.booking_gooey_opacity is number)
+        && (!('experiences_gooey_opacity' in data) || data.experiences_gooey_opacity is number)
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidImageSlots(data) {
+      return data.keys().hasAll(['logo_url', 'experience_gallery', 'updatedAt'])
+        && data.keys().hasOnly([
+          'logo_url', 'hero_image', 'services_feature', 'service_nails',
+          'service_lashes', 'service_hair', 'about_image', 'hero_secondary_image',
+          'experience_gallery', 'configs', 'updatedAt'
+        ])
+        && data.logo_url is string && data.logo_url.size() <= 200000
+        && (!('hero_image' in data) || (data.hero_image is string && data.hero_image.size() <= 200000))
+        && (!('services_feature' in data) || (data.services_feature is string && data.services_feature.size() <= 850000))
+        && (!('service_nails' in data) || (data.service_nails is string && data.service_nails.size() <= 200000))
+        && (!('service_lashes' in data) || (data.service_lashes is string && data.service_lashes.size() <= 200000))
+        && (!('service_hair' in data) || (data.service_hair is string && data.service_hair.size() <= 200000))
+        && (!('about_image' in data) || (data.about_image is string && data.about_image.size() <= 200000))
+        && (!('hero_secondary_image' in data) || (data.hero_secondary_image is string && data.hero_secondary_image.size() <= 200000))
+        && data.experience_gallery is list && data.experience_gallery.size() <= 40
+        && (data.experience_gallery.size() == 0 || (data.experience_gallery[0] is string && data.experience_gallery[0].size() <= 200000))
+        && (!('configs' in data) || data.configs is map)
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidCalendarSlots(data) {
+      return data.keys().hasAll(['slots', 'updatedAt'])
+        && data.keys().hasOnly(['slots', 'updatedAt'])
+        && data.slots is list && data.slots.size() <= 48
+        && (data.slots.size() == 0 || data.slots[0] is map)
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidService(data) {
+      return data.keys().hasAll(['id', 'category', 'title', 'price', 'is_active', 'updatedAt'])
+        && data.keys().hasOnly([
+          'id', 'category', 'number', 'title', 'description',
+          'price', 'duration_min', 'hide_duration', 'is_active', 'is_popular', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && data.category in ['nails', 'lashes', 'hair']
+        && (!('number' in data) || (data.number is string && data.number.size() <= 16))
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 160
+        && (!('description' in data) || (data.description is string && data.description.size() <= 600))
+        && data.price is number && data.price >= 0 && data.price <= 100000000
+        && (!('duration_min' in data) || (data.duration_min is number && data.duration_min >= 0 && data.duration_min <= 1440))
+        && (!('hide_duration' in data) || data.hide_duration is bool)
+        && data.is_active is bool
+        && (!('is_popular' in data) || data.is_popular is bool)
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAppointment(data) {
+      return data.keys().hasAll([
+          'id', 'clientUid', 'client_name', 'client_phone',
+          'service_id', 'service_title', 'category', 'date', 'time_slot',
+          'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'clientUid', 'client_name', 'client_phone', 'client_email',
+          'service_id', 'service_title', 'category', 'date', 'time_slot',
+          'notes', 'status', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.clientUid)
+        && data.client_name is string && data.client_name.size() > 0 && data.client_name.size() <= 120
+        && data.client_phone is string && data.client_phone.size() > 0 && data.client_phone.size() <= 40
+        && (!('client_email' in data) || (data.client_email is string && data.client_email.size() <= 254))
+        && isValidId(data.service_id)
+        && data.service_title is string && data.service_title.size() > 0 && data.service_title.size() <= 160
+        && data.category in ['nails', 'lashes', 'hair']
+        && data.date is string && data.date.size() == 10 && data.date.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && data.time_slot is string && data.time_slot.size() > 0 && data.time_slot.size() <= 32
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 600))
+        && data.status in ['pending', 'confirmed', 'completed', 'cancelled']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // Health check document for boot verification
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // Authoritative admin UID directory (read-only to owner/admin)
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && isValidId(adminId) && (request.auth.uid == adminId || isAdmin());
+    }
+
+    // User profiles (PII strictly restricted to owner or admin)
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && request.auth.uid == userId
+        && isValidUserProfile(incoming())
+        && incoming().uid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && (request.auth.uid == userId || isAdmin())
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'displayName', 'photoURL', 'updatedAt']);
+    }
+
+    // Public storefront presentation config
+    match /boutique_config/{configId} {
+      allow get: if isValidId(configId);
+      allow create: if isAdmin()
+        && isValidId(configId)
+        && configId == 'current'
+        && isValidBoutiqueConfig(incoming())
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(configId)
+        && configId == 'current'
+        && isValidBoutiqueConfig(incoming())
+        && incoming().updatedAt == request.time;
+    }
+
+    // Public storefront images and Experiences gallery
+    match /image_slots/{slotDocId} {
+      allow get: if isValidId(slotDocId);
+      allow create: if isAdmin()
+        && isValidId(slotDocId)
+        && slotDocId == 'current'
+        && isValidImageSlots(incoming())
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(slotDocId)
+        && slotDocId == 'current'
+        && isValidImageSlots(incoming())
+        && incoming().updatedAt == request.time;
+    }
+
+    // Public booking time slots
+    match /calendar_slots/{slotDocId} {
+      allow get: if isValidId(slotDocId);
+      allow create: if isAdmin()
+        && isValidId(slotDocId)
+        && slotDocId == 'current'
+        && isValidCalendarSlots(incoming())
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(slotDocId)
+        && slotDocId == 'current'
+        && isValidCalendarSlots(incoming())
+        && incoming().updatedAt == request.time;
+    }
+
+    // Public treatments catalog
+    match /services/{serviceId} {
+      allow get: if isValidId(serviceId);
+      allow list: if true;
+      allow create: if isAdmin()
+        && isValidId(serviceId)
+        && isValidService(incoming())
+        && incoming().id == serviceId
+        && incoming().updatedAt == request.time;
+      allow update: if isAdmin()
+        && isValidId(serviceId)
+        && isValidService(incoming())
+        && incoming().id == existing().id
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'category', 'number', 'title', 'description', 'price',
+          'duration_min', 'hide_duration', 'is_active', 'is_popular', 'updatedAt'
+        ]);
+      allow delete: if isAdmin() && isValidId(serviceId);
+    }
+
+    // Client appointments (PII strictly restricted to owner or admin; terminal states locked)
+    match /appointments/{appointmentId} {
+      allow get: if isSignedIn() && isValidId(appointmentId) && (isAdmin() || existing().clientUid == request.auth.uid);
+      allow list: if isSignedIn() && (isAdmin() || resource.data.clientUid == request.auth.uid);
+      allow create: if isVerifiedUser()
+        && isValidId(appointmentId)
+        && isValidAppointment(incoming())
+        && incoming().id == appointmentId
+        && incoming().clientUid == request.auth.uid
+        && incoming().status == 'pending'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(appointmentId)
+        && isValidAppointment(incoming())
+        && incoming().id == existing().id
+        && incoming().clientUid == existing().clientUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (
+            existing().clientUid == request.auth.uid
+            && !(existing().status in ['completed', 'cancelled'])
+            && incoming().status == 'cancelled'
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+          )
+        );
+      allow delete: if isAdmin() && isValidId(appointmentId);
+    }
+  }
+}

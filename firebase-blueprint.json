@@ -1,0 +1,208 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user profile stored by Firebase UID.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Authentication UID.",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified user email address.",
+          "maxLength": 254
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name from Google Sign-In.",
+          "maxLength": 120
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Profile avatar URL.",
+          "maxLength": 512
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server last update timestamp."
+        }
+      },
+      "required": ["uid", "email", "createdAt", "updatedAt"]
+    },
+    "BoutiqueConfig": {
+      "title": "BoutiqueConfig",
+      "description": "Public storefront presentation settings and contact details for MT Mansion.",
+      "type": "object",
+      "properties": {
+        "whatsapp_number": { "type": "string", "maxLength": 40 },
+        "boutique_name": { "type": "string", "maxLength": 120 },
+        "tagline": { "type": "string", "maxLength": 200 },
+        "hero_description": { "type": "string", "maxLength": 1000 },
+        "address": { "type": "string", "maxLength": 240 },
+        "city_region": { "type": "string", "maxLength": 120 },
+        "opening_hours": { "type": "string", "maxLength": 240 },
+        "currency_symbol": { "type": "string", "maxLength": 16 },
+        "currency_code": { "type": "string", "maxLength": 16 },
+        "instagram_url": { "type": "string", "maxLength": 512 },
+        "tiktok_url": { "type": "string", "maxLength": 512 },
+        "pinterest_url": { "type": "string", "maxLength": 512 },
+        "whatsapp_default_message": { "type": "string", "maxLength": 500 },
+        "hero_bg_color": { "type": "string", "maxLength": 32 },
+        "hero_accent_color": { "type": "string", "maxLength": 32 },
+        "hero_text_color": { "type": "string", "maxLength": 32 },
+        "navbar_bg_color": { "type": "string", "maxLength": 32 },
+        "navbar_text_color": { "type": "string", "maxLength": 32 },
+        "details_bg_color": { "type": "string", "maxLength": 32 },
+        "details_text_color": { "type": "string", "maxLength": 32 },
+        "services_bg_color": { "type": "string", "maxLength": 32 },
+        "services_card_bg_color": { "type": "string", "maxLength": 32 },
+        "services_text_color": { "type": "string", "maxLength": 32 },
+        "booking_bg_color": { "type": "string", "maxLength": 32 },
+        "booking_card_bg_color": { "type": "string", "maxLength": 32 },
+        "booking_accent_color": { "type": "string", "maxLength": 32 },
+        "about_bg_color": { "type": "string", "maxLength": 32 },
+        "about_text_color": { "type": "string", "maxLength": 32 },
+        "experiences_bg_color": { "type": "string", "maxLength": 32 },
+        "experiences_title_color": { "type": "string", "maxLength": 32 },
+        "experiences_subtitle_color": { "type": "string", "maxLength": 32 },
+        "footer_bg_color": { "type": "string", "maxLength": 32 },
+        "footer_text_color": { "type": "string", "maxLength": 32 },
+        "hero_gradient_enabled": { "type": "boolean" },
+        "hero_gradient_start": { "type": "string", "maxLength": 32 },
+        "hero_gradient_end": { "type": "string", "maxLength": 32 },
+        "gooey_color_1": { "type": "string", "maxLength": 32 },
+        "gooey_color_2": { "type": "string", "maxLength": 32 },
+        "theme_preset": { "type": "string", "maxLength": 40 },
+        "hero_font_size": { "type": "number" },
+        "hero_description_line_height": { "type": "number" },
+        "hero_description_align": { "type": "string", "enum": ["left", "center", "right"] },
+        "hero_button_text": { "type": "string", "maxLength": 80 },
+        "hero_scroll_text": { "type": "string", "maxLength": 80 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["boutique_name", "whatsapp_number", "currency_symbol", "updatedAt"]
+    },
+    "ImageSlotsConfig": {
+      "title": "ImageSlotsConfig",
+      "description": "Storefront imagery URLs, gallery photos, and display settings.",
+      "type": "object",
+      "properties": {
+        "logo_url": { "type": "string", "maxLength": 2000 },
+        "hero_image": { "type": "string", "maxLength": 2000 },
+        "services_feature": { "type": "string", "maxLength": 900000 },
+        "service_nails": { "type": "string", "maxLength": 2000 },
+        "service_lashes": { "type": "string", "maxLength": 2000 },
+        "service_hair": { "type": "string", "maxLength": 2000 },
+        "about_image": { "type": "string", "maxLength": 2000 },
+        "hero_secondary_image": { "type": "string", "maxLength": 2000 },
+        "experience_gallery": { "type": "array", "description": "Bounded gallery image list (max 40)." },
+        "configs": { "type": "object", "description": "Per-slot aspect ratio & scale map." },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["logo_url", "experience_gallery", "updatedAt"]
+    },
+    "CalendarSlotsConfig": {
+      "title": "CalendarSlotsConfig",
+      "description": "Available boutique booking time slots.",
+      "type": "object",
+      "properties": {
+        "slots": { "type": "array", "description": "Bounded time slots list (max 48)." },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["slots", "updatedAt"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "Bookable beauty treatment service.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "category": { "type": "string", "enum": ["nails", "lashes", "hair"] },
+        "number": { "type": "string", "maxLength": 16 },
+        "title": { "type": "string", "maxLength": 160 },
+        "description": { "type": "string", "maxLength": 600 },
+        "price": { "type": "number" },
+        "duration_min": { "type": "number" },
+        "hide_duration": { "type": "boolean" },
+        "is_active": { "type": "boolean" },
+        "is_popular": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "category", "title", "price", "is_active", "updatedAt"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Client appointment booking containing private client contact details.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "clientUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "client_name": { "type": "string", "maxLength": 120 },
+        "client_phone": { "type": "string", "maxLength": 40 },
+        "client_email": { "type": "string", "maxLength": 254 },
+        "service_id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "service_title": { "type": "string", "maxLength": 160 },
+        "category": { "type": "string", "enum": ["nails", "lashes", "hair"] },
+        "date": { "type": "string", "maxLength": 20, "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "time_slot": { "type": "string", "maxLength": 32 },
+        "notes": { "type": "string", "maxLength": 600 },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "clientUid", "client_name", "client_phone", "service_id", "service_title", "category", "date", "time_slot", "status", "createdAt", "updatedAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Authoritative admin UID marker.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "email": { "type": "string", "maxLength": 254 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Authenticated user profiles, isolated per owner or admin."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Authoritative admin records checked for privileged operations."
+    },
+    "/boutique_config/{configId}": {
+      "schema": { "$ref": "#/entities/BoutiqueConfig" },
+      "description": "Public boutique theme, copy, and WhatsApp settings ('current')."
+    },
+    "/image_slots/{slotDocId}": {
+      "schema": { "$ref": "#/entities/ImageSlotsConfig" },
+      "description": "Public storefront imagery & Experiences gallery ('current')."
+    },
+    "/calendar_slots/{slotDocId}": {
+      "schema": { "$ref": "#/entities/CalendarSlotsConfig" },
+      "description": "Public available appointment time slots ('current')."
+    },
+    "/services/{serviceId}": {
+      "schema": { "$ref": "#/entities/Service" },
+      "description": "Beauty treatments catalog readable by visitors and managed by admin."
+    },
+    "/appointments/{appointmentId}": {
+      "schema": { "$ref": "#/entities/Appointment" },
+      "description": "Private client appointment bookings restricted to booking owner or admin."
+    }
+  }
+}
