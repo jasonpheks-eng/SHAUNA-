@@ -19,6 +19,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { Appointment } from '../../../types';
+import { buildWhatsAppUrl } from '../../../lib/whatsapp';
 
 export const TabBookingsCalendar: React.FC = () => {
   const { appointments, updateAppointmentStatus, removeAppointment, settings } = useBoutique();
@@ -44,9 +45,8 @@ export const TabBookingsCalendar: React.FC = () => {
   };
 
   const openWhatsApp = (phone: string, name: string, service: string, date: string, time: string) => {
-    const cleanNumber = phone.replace(/[^0-9]/g, '');
     const message = `Hi ${name}, this is ${settings.boutique_name}. We're confirming your ${service} appointment on ${date} at ${time}.`;
-    window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`, '_blank');
+    window.open(buildWhatsAppUrl(phone, message), '_blank', 'noopener,noreferrer');
   };
 
   // Calendar logic

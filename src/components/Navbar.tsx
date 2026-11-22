@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useBoutique } from '../context/BoutiqueContext';
 import { Menu, X, Settings, Sparkles, Calendar, Camera, ChevronRight, Phone } from 'lucide-react';
 import { getImageStyleAndClasses } from '../lib/imageStyle';
+import { buildWhatsAppUrl } from '../lib/whatsapp';
 
 export const Navbar: React.FC = () => {
   const { openAdmin, settings, imageSlots } = useBoutique();
@@ -196,7 +197,10 @@ export const Navbar: React.FC = () => {
           {settings.whatsapp_number && (
             <div className="pt-3 border-t border-white/10 flex items-center justify-between text-[11px] text-zinc-400">
               <a 
-                href={`https://wa.me/${settings.whatsapp_number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(settings.whatsapp_default_message || 'Hello MT Maison! I would like to inquire about booking an appointment.')}`} 
+                href={buildWhatsAppUrl(
+                  settings.whatsapp_number,
+                  settings.whatsapp_default_message || 'Hello MT Mansion! I would like to inquire about booking an appointment.'
+                )}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-rose-300 hover:text-white transition-colors"

@@ -65,9 +65,9 @@ export const Footer: React.FC = () => {
           </a>
 
           <a
-            href={`https://wa.me/${settings.whatsapp_number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(settings.whatsapp_default_message || 'Hello MT Maison! I would like to inquire about booking an appointment.')}`}
+            href={whatsappDmUrl}
             target="_blank"
-            rel="noreferrer"
+            rel="noopener noreferrer"
             className="w-10 h-10 rounded-full bg-white/10 hover:bg-emerald-600 flex items-center justify-center text-white transition-all shadow"
             aria-label="WhatsApp"
           >

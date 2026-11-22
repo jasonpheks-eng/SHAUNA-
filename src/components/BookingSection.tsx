@@ -2,12 +2,18 @@ import React, { useState, useMemo } from 'react';
 import { useBoutique } from '../context/BoutiqueContext';
 import { ServiceItem, Appointment } from '../types';
 import { GooeyGradientBackground } from './GooeyGradientBackground';
-import { formatAppointmentWhatsAppMessage, buildWhatsAppUrl } from '../lib/whatsapp';
-import { buildGoogleCalendarWebLink } from '../lib/googleCalendar';
+import {
+  formatAppointmentWhatsAppMessage,
+  buildWhatsAppUrl,
+  buildTelUrl,
+  buildSmsUrl,
+  DEFAULT_BOUTIQUE_WHATSAPP,
+} from '../lib/whatsapp';
 import {
   Clock,
   CheckCircle,
   MessageCircle,
+  MessageSquare,
   User,
   Phone,
   AlertCircle,
@@ -17,6 +23,8 @@ import {
   Sparkles,
   ArrowUp,
   X,
+  Copy,
+  Check,
 } from 'lucide-react';
 
 const NailIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
@@ -151,7 +159,68 @@ export const BookingSection: React.FC = () => {
   const [confirmedBooking, setConfirmedBooking] = useState<Appointment | null>(null);
   const [confirmedTreatments, setConfirmedTreatments] = useState<ServiceItem[]>([]);
   const [sentBookings, setSentBookings] = useState<Appointment[]>([]);
+  const [copiedField, setCopiedField] = useState<'number' | 'message' | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
+
+  const handleCopyText = async (text: string, field: 'number' | 'message') => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedField(field);
+      setTimeout(() => {
+        setCopiedField((curr) => (curr === field ? null : curr));
+      }, 2000);
+    } catch {
+      // Clipboard fallback ignored
+    }
+  };
+
+  const confirmedWhatsAppPayload = useMemo(() => {
+    if (!confirmedBooking) return { text: '', url: '', smsUrl: '' };
+    const fallbackIds: string[] = Array.isArray(confirmedBooking.service_ids)
+      ? confirmedBooking.service_ids
+      : [confirmedBooking.service_id];
+    const treatmentsList: ServiceItem[] = confirmedTreatments.length > 0
+      ? confirmedTreatments
+      : fallbackIds
+          .map((id) => services.find((s) => s.id === id))
+          .filter((s): s is ServiceItem => Boolean(s));
+    const summedTotal = treatmentsList.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
+    const text = formatAppointmentWhatsAppMessage({
+      boutiqueName: settings.boutique_name,
+      clientName: confirmedBooking.client_name,
+      serviceTitle: confirmedBooking.service_title,
+      servicesSummary: confirmedBooking.services_summary,
+      treatments: treatmentsList.map((s) => ({
+        title: s.title,
+        category: s.category,
+        price: s.price,
+      })),
+      category: confirmedBooking.category,
+      price: summedTotal || services.find((s) => s.id === confirmedBooking.service_id)?.price,
+      currencySymbol: settings.currency_symbol,
+      date: confirmedBooking.date,
+      timeSlot: confirmedBooking.time_slot,
+      bookingRef: confirmedBooking.id,
+      notes: confirmedBooking.notes,
+    });
+    return {
+      text,
+      url: buildWhatsAppUrl(settings.whatsapp_number, text),
+      smsUrl: buildSmsUrl(settings.whatsapp_number, text),
+    };
+  }, [confirmedBooking, confirmedTreatments, services, settings]);
 
   // Formatted Selected Date Label
   const selectedDateLabel = useMemo(() => {
@@ -168,11 +237,10 @@ export const BookingSection: React.FC = () => {
     }
   }, [selectedDate]);
 
-  // Submission Handler
-  const handleBookingSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!clientName.trim() || selectedServicesForBooking.length === 0) {
-      setErrorMessage('Please enter your name and select at least one treatment.');
+  // Submission Handler (supports WhatsApp or native mobile SMS)
+  const submitBookingRequest = async (channel: 'whatsapp' | 'sms') => {
+    if (!clientName.trim() || !clientPhone.trim() || selectedServicesForBooking.length === 0) {
+      setErrorMessage('Please enter your name, phone number, and select at least one treatment.');
       return;
     }
     setErrorMessage('');
@@ -192,7 +260,7 @@ export const BookingSection: React.FC = () => {
 
       const appointment = await createAppointment({
         client_name: clientName.trim(),
-        client_phone: clientPhone.trim() || 'WhatsApp Direct',
+        client_phone: clientPhone.trim() || (channel === 'sms' ? 'SMS Direct' : 'WhatsApp Direct'),
         service_id: primaryService.id,
         service_ids: serviceIds,
         service_title: combinedTitle,
@@ -207,8 +275,8 @@ export const BookingSection: React.FC = () => {
       setConfirmedBooking(appointment);
       setSentBookings((prev) => [appointment, ...prev.filter((b) => b.id !== appointment.id)]);
 
-      // Organized WhatsApp Message with every booked treatment & summed total
-      const waText = formatAppointmentWhatsAppMessage({
+      // Organized booking message with every booked treatment & summed total
+      const bookingText = formatAppointmentWhatsAppMessage({
         boutiqueName: settings.boutique_name,
         clientName: appointment.client_name,
         serviceTitle: appointment.service_title,
@@ -227,8 +295,13 @@ export const BookingSection: React.FC = () => {
         notes: notes.trim(),
       });
 
-      const waUrl = buildWhatsAppUrl(settings.whatsapp_number, waText);
-      window.open(waUrl, '_blank', 'noopener,noreferrer');
+      if (channel === 'sms') {
+        const smsUrl = buildSmsUrl(settings.whatsapp_number, bookingText);
+        window.location.href = smsUrl;
+      } else {
+        const waUrl = buildWhatsAppUrl(settings.whatsapp_number, bookingText);
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
+      }
 
       // Scroll smoothly to confirmation card
       setTimeout(() => {
@@ -244,6 +317,11 @@ export const BookingSection: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitBookingRequest('whatsapp');
   };
 
   return (
@@ -301,56 +379,15 @@ export const BookingSection: React.FC = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const calUrl = buildGoogleCalendarWebLink(confirmedBooking, settings.calendar_reminder_min || 30, settings.ceo_google_email || 'jasonpheks@gmail.com');
-                  window.open(calUrl, '_blank', 'noopener,noreferrer');
-                }}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs flex items-center justify-center gap-2 shadow-lg transition-colors cursor-pointer"
+              <a
+                href={confirmedWhatsAppPayload.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto min-h-[44px] px-7 py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer whitespace-nowrap transition-colors"
               >
-                <CalendarIcon className="w-4 h-4 text-blue-200" />
-                <span>Add to Google Calendar ↗</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const fallbackIds: string[] = Array.isArray(confirmedBooking.service_ids)
-                    ? confirmedBooking.service_ids
-                    : [confirmedBooking.service_id];
-                  const treatmentsList: ServiceItem[] = confirmedTreatments.length > 0
-                    ? confirmedTreatments
-                    : fallbackIds
-                        .map((id) => services.find((s) => s.id === id))
-                        .filter((s): s is ServiceItem => Boolean(s));
-                  const summedTotal = treatmentsList.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
-                  const waText = formatAppointmentWhatsAppMessage({
-                    boutiqueName: settings.boutique_name,
-                    clientName: confirmedBooking.client_name,
-                    serviceTitle: confirmedBooking.service_title,
-                    servicesSummary: confirmedBooking.services_summary,
-                    treatments: treatmentsList.map((s) => ({
-                      title: s.title,
-                      category: s.category,
-                      price: s.price,
-                    })),
-                    category: confirmedBooking.category,
-                    price: summedTotal || services.find((s) => s.id === confirmedBooking.service_id)?.price,
-                    currencySymbol: settings.currency_symbol,
-                    date: confirmedBooking.date,
-                    timeSlot: confirmedBooking.time_slot,
-                    bookingRef: confirmedBooking.id,
-                    notes: confirmedBooking.notes,
-                  });
-                  const waUrl = buildWhatsAppUrl(settings.whatsapp_number, waText);
-                  window.open(waUrl, '_blank', 'noopener,noreferrer');
-                }}
-                className="w-full sm:w-auto px-7 py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-lg cursor-pointer"
-              >
-                <MessageCircle className="w-4 h-4" />
+                <MessageCircle className="w-4 h-4 shrink-0" />
                 <span>Open WhatsApp ↗</span>
-              </button>
+              </a>
               <button
                 type="button"
                 onClick={() => {
@@ -361,10 +398,62 @@ export const BookingSection: React.FC = () => {
                   setClientPhone('');
                   setNotes('');
                 }}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-full border border-white/20 hover:bg-white/10 text-white text-xs transition-colors cursor-pointer"
+                className="w-full sm:w-auto min-h-[44px] px-6 py-3.5 rounded-full border border-white/20 hover:bg-white/10 text-white text-xs transition-colors cursor-pointer whitespace-nowrap"
               >
                 Book Another
               </button>
+            </div>
+
+            {/* Direct Contact & Clipboard Fallbacks for Mobile */}
+            <div className="pt-4 border-t border-white/10 space-y-2.5 text-xs text-rose-100/80">
+              <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+                <span>Boutique WhatsApp:</span>
+                <span className="font-mono font-semibold text-white tabular-nums">
+                  {settings.whatsapp_number || DEFAULT_BOUTIQUE_WHATSAPP}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleCopyText(settings.whatsapp_number || DEFAULT_BOUTIQUE_WHATSAPP, 'number')
+                  }
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  {copiedField === 'number' ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-300" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5 text-rose-200" />
+                  )}
+                  <span>{copiedField === 'number' ? 'Number Copied' : 'Copy Number'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCopyText(confirmedWhatsAppPayload.text, 'message')}
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  {copiedField === 'message' ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-300" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5 text-rose-200" />
+                  )}
+                  <span>{copiedField === 'message' ? 'Message Copied' : 'Copy Message'}</span>
+                </button>
+                <a
+                  href={confirmedWhatsAppPayload.smsUrl}
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 border border-white/25 text-white text-xs font-medium inline-flex items-center gap-1.5 transition-colors whitespace-nowrap"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-rose-200" />
+                  <span>Send via SMS</span>
+                </a>
+                <a
+                  href={buildTelUrl(settings.whatsapp_number)}
+                  className="min-h-[40px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-medium inline-flex items-center gap-1.5 transition-colors whitespace-nowrap"
+                >
+                  <Phone className="w-3.5 h-3.5 text-rose-200" />
+                  <span>Call Boutique</span>
+                </a>
+              </div>
             </div>
 
             {sentBookings.length > 0 && (
@@ -741,14 +830,26 @@ export const BookingSection: React.FC = () => {
                   </div>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full min-h-[56px] rounded-full bg-[#34A853] hover:bg-[#2e9449] text-white font-bold text-sm tracking-widest uppercase transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-2.5 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed group"
-                >
-                  <MessageCircle className="w-5 h-5 text-white group-hover:rotate-12 transition-transform" />
-                  <span>{isSubmitting ? 'Securing Slot...' : 'Request via WhatsApp ↗'}</span>
-                </button>
+                <div className="space-y-3">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full min-h-[56px] rounded-full bg-[#34A853] hover:bg-[#2e9449] text-white font-bold text-sm tracking-widest uppercase transition-all shadow-xl hover:shadow-2xl flex items-center justify-center gap-2.5 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed group cursor-pointer"
+                  >
+                    <MessageCircle className="w-5 h-5 text-white group-hover:rotate-12 transition-transform" />
+                    <span>{isSubmitting ? 'Securing Slot...' : 'Request via WhatsApp ↗'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={() => submitBookingRequest('sms')}
+                    className="w-full min-h-[48px] rounded-full bg-white/10 hover:bg-white/20 border border-white/25 text-white font-semibold text-xs tracking-widest uppercase transition-all shadow-lg flex items-center justify-center gap-2.5 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <MessageSquare className="w-4 h-4 text-rose-200" />
+                    <span>{isSubmitting ? 'Securing Slot...' : 'Send via SMS'}</span>
+                  </button>
+                </div>
               </form>
 
               {/* Step 4: My Bookings - Only visible after a WhatsApp booking request is sent */}

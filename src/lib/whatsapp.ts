@@ -74,7 +74,7 @@ export function formatAppointmentWhatsAppMessage(details: WhatsAppBookingDetails
   const lines = [
     `✨ *APPOINTMENT BOOKING REQUEST* ✨`,
     `*${brand} LUXURY BOUTIQUE*`,
-    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `----------------------`,
     ``,
     `👤 *CLIENT DETAILS*`,
     `• *Name:* ${details.clientName}`,
@@ -128,7 +128,7 @@ export function formatAppointmentWhatsAppMessage(details: WhatsAppBookingDetails
 
   lines.push(
     ``,
-    `━━━━━━━━━━━━━━━━━━━━━━`,
+    `----------------------`,
     `_Hello ${details.boutiqueName || 'MT Maison'} team! I have submitted this appointment request on your website. Kindly confirm availability for this slot._`,
     ``,
     `Thank you! 💕`
@@ -163,11 +163,77 @@ export function formatExperienceShareWhatsAppMessage(options: {
   return lines.join('\n');
 }
 
+export const DEFAULT_BOUTIQUE_WHATSAPP = '+265 888 38 29 38';
+export const DEFAULT_BOUTIQUE_WHATSAPP_DIGITS = '265888382938';
+
 /**
- * Builds a valid WhatsApp click-to-chat deep link URL
+ * Normalizes a phone number into strict E.164 digits-only format for WhatsApp deep links.
+ * Handles spaces, dashes, leading '+', '00' international prefixes, accidental trunk '0'
+ * after country code 265, and local Malawi 088x/099x numbers.
  */
-export function buildWhatsAppUrl(phoneNumber: string, message: string): string {
-  const cleanNumber = (phoneNumber || '+265 888 38 29 38').replace(/[^0-9]/g, '');
-  const targetNumber = cleanNumber || '265888382938';
-  return `https://wa.me/${targetNumber}?text=${encodeURIComponent(message)}`;
+export function normalizeWhatsAppNumber(phoneNumber?: string): string {
+  let digits = (phoneNumber || DEFAULT_BOUTIQUE_WHATSAPP).replace(/[^0-9]/g, '');
+
+  if (digits.startsWith('00')) {
+    digits = digits.slice(2);
+  }
+
+  // Handle Malawi country code with accidental local trunk zero (e.g. +265 0888...)
+  if (digits.startsWith('2650')) {
+    digits = '265' + digits.slice(4);
+  }
+
+  // Handle local Malawi format (e.g. 0888382938 -> 265888382938)
+  if (digits.startsWith('0') && digits.length === 10) {
+    digits = '265' + digits.slice(1);
+  } else if (/^(88|99|98)\d{7}$/.test(digits)) {
+    digits = '265' + digits;
+  }
+
+  if (digits.length < 7 || digits.length > 15) {
+    return DEFAULT_BOUTIQUE_WHATSAPP_DIGITS;
+  }
+
+  return digits;
+}
+
+/**
+ * Formats a displayable tel: href (+265888382938) from any raw phone string.
+ */
+export function buildTelUrl(phoneNumber?: string): string {
+  return `tel:+${normalizeWhatsAppNumber(phoneNumber)}`;
+}
+
+/**
+ * Builds a canonical WhatsApp click-to-chat deep link URL using explicit query parameters
+ * (avoids wa.me 302 path redirect issues in mobile WebViews and native app intent handlers).
+ */
+export function buildWhatsAppUrl(phoneNumber: string, message?: string): string {
+  const targetNumber = normalizeWhatsAppNumber(phoneNumber);
+  const cleanMessage = (message || '').trim();
+  if (!cleanMessage) {
+    return `https://api.whatsapp.com/send?phone=${targetNumber}`;
+  }
+  return `https://api.whatsapp.com/send?phone=${targetNumber}&text=${encodeURIComponent(cleanMessage)}`;
+}
+
+/**
+ * Formats WhatsApp-styled booking text into clean plain text and builds a cross-platform
+ * sms: deep link (iOS & Android Messages app) pre-addressed to +265888382938.
+ */
+export function buildSmsUrl(phoneNumber?: string, message?: string): string {
+  const targetNumber = normalizeWhatsAppNumber(phoneNumber);
+  const plainMessage = (message || '')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/(^|\s)_([^_]+)_/g, '$1$2')
+    .trim();
+
+  if (!plainMessage) {
+    return `sms:+${targetNumber}`;
+  }
+
+  const isIos =
+    typeof navigator !== 'undefined' && /iPad|iPhone|iPod/i.test(navigator.userAgent);
+  const separator = isIos ? '&' : '?';
+  return `sms:+${targetNumber}${separator}body=${encodeURIComponent(plainMessage)}`;
 }

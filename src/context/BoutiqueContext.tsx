@@ -10,6 +10,7 @@ import {
   RealtimeMessage,
 } from '../types';
 import { syncAppointmentToGoogleCalendar } from '../lib/googleCalendar';
+import { buildWhatsAppUrl } from '../lib/whatsapp';
 import {
   syncSettingsToSupabase,
   syncServicesToSupabase,
@@ -1580,9 +1581,8 @@ export const BoutiqueProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const sendWhatsAppDirect = (customText?: string) => {
-    const cleanNumber = settings.whatsapp_number.replace(/[^0-9]/g, '');
     const message = customText || settings.whatsapp_default_message;
-    const url = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
+    const url = buildWhatsAppUrl(settings.whatsapp_number, message);
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
