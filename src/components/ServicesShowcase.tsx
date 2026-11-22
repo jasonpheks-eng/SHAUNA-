@@ -1,12 +1,20 @@
 import React, { useState } from 'react';
 import { useBoutique } from '../context/BoutiqueContext';
-import { ArrowUpRight, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { ArrowUpRight, ArrowDown, Check, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { getImageStyleAndClasses } from '../lib/imageStyle';
 import { GooeyGradientBackground } from './GooeyGradientBackground';
 
 export const ServicesShowcase: React.FC = () => {
-  const { imageSlots, openBookingForService, services, settings } = useBoutique();
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const {
+    imageSlots,
+    services,
+    settings,
+    selectedServiceIdsForBooking,
+    selectedServicesForBooking,
+    toggleServiceSelection,
+    clearSelectedServices,
+  } = useBoutique();
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
 
   const allCategories = [
     {
@@ -41,12 +49,16 @@ export const ServicesShowcase: React.FC = () => {
   const categories = activeCategories.length > 0 ? activeCategories : allCategories;
 
   const handleCardClick = (cat: any) => {
-    if (expandedCategory === cat.id) {
-      setExpandedCategory(null);
-    } else {
-      setExpandedCategory(cat.id);
-    }
+    setExpandedCategories((prev) =>
+      prev.includes(cat.id) ? prev.filter((id) => id !== cat.id) : [...prev, cat.id]
+    );
   };
+
+  const totalSelectedPrice = selectedServicesForBooking.reduce(
+    (sum, s) => sum + (Number(s.price) || 0),
+    0
+  );
+  const sym = settings.currency_symbol || 'MWK';
 
   return (
     <section 
@@ -87,7 +99,7 @@ export const ServicesShowcase: React.FC = () => {
           {categories.map((cat) => {
             const cardImgStyle = getImageStyleAndClasses(cat.slotKey, imageSlots.configs, 'aspect-[4/3]', 'object-cover');
             const catServices = (services || []).filter((s) => s.category === cat.id && s.is_active !== false);
-            const isExpanded = expandedCategory === cat.id;
+            const isExpanded = expandedCategories.includes(cat.id);
 
             return (
               <div
@@ -174,56 +186,81 @@ export const ServicesShowcase: React.FC = () => {
                           No treatments currently listed in this category.
                         </div>
                       ) : (
-                        catServices.map((service) => (
-                          <div
-                            key={service.id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openBookingForService(service);
-                            }}
-                            className="p-3.5 rounded-xl bg-black/40 hover:bg-black/60 border border-white/10 hover:border-white/30 transition-all cursor-pointer flex flex-col justify-between gap-3 group/item shadow-md"
-                          >
-                            <div className="min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <h4 className="text-sm font-semibold text-white group-hover/item:text-rose-200 transition-colors">
-                                  {service.title}
-                                </h4>
-                                {service.is_popular && (
-                                  <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/30 text-rose-200 border border-rose-400/30 font-sans shrink-0">
-                                    Popular
-                                  </span>
+                        catServices.map((service) => {
+                          const isBooked = selectedServiceIdsForBooking.includes(service.id);
+                          return (
+                            <div
+                              key={service.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleServiceSelection(service);
+                              }}
+                              className={`p-3.5 rounded-xl border transition-all cursor-pointer flex flex-col justify-between gap-3 group/item shadow-md ${
+                                isBooked
+                                  ? 'border-rose-200 ring-2 ring-rose-300/70 shadow-lg'
+                                  : 'bg-black/40 hover:bg-black/60 border-white/10 hover:border-white/30'
+                              }`}
+                              style={
+                                isBooked
+                                  ? { backgroundColor: `${settings.hero_accent_color || '#C45266'}55` }
+                                  : undefined
+                              }
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <h4 className="text-sm font-semibold text-white group-hover/item:text-rose-100 transition-colors">
+                                    {service.title}
+                                  </h4>
+                                  {service.is_popular && (
+                                    <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/30 text-rose-200 border border-rose-400/30 font-sans shrink-0">
+                                      Popular
+                                    </span>
+                                  )}
+                                </div>
+                                {service.description && (
+                                  <p className="text-xs text-rose-100/80 font-light mt-1 max-h-14 overflow-y-auto pr-1 leading-relaxed border-t border-white/5 pt-1">
+                                    {service.description}
+                                  </p>
                                 )}
                               </div>
-                              {service.description && (
-                                <p className="text-xs text-rose-100/80 font-light mt-1 max-h-14 overflow-y-auto pr-1 leading-relaxed border-t border-white/5 pt-1">
-                                  {service.description}
-                                </p>
-                              )}
-                            </div>
 
-                            <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10 shrink-0">
-                              <div className="font-mono text-left">
-                                <span className="text-sm font-bold text-white">
-                                  {service.id === 'hair-blowout' ? 'MK' : (settings.currency_symbol || 'MWK')} {service.price ? service.price.toLocaleString() : 0}
-                                </span>
-                                {!service.hide_duration && service.duration_min > 0 && (
-                                  <span className="block text-[10px] text-rose-300 opacity-90">{service.duration_min} mins</span>
-                                )}
+                              <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10 shrink-0">
+                                <div className="font-mono text-left tabular-nums">
+                                  <span className="text-sm font-bold text-white">
+                                    {service.id === 'hair-blowout' ? 'MK' : (settings.currency_symbol || 'MWK')} {service.price ? service.price.toLocaleString() : 0}
+                                  </span>
+                                  {!service.hide_duration && service.duration_min > 0 && (
+                                    <span className="block text-[10px] text-rose-300 opacity-90">{service.duration_min} mins</span>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleServiceSelection(service);
+                                  }}
+                                  className={`px-4 py-2 rounded-xl text-xs font-bold shadow-lg transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 whitespace-nowrap shrink-0 ${
+                                    isBooked
+                                      ? 'bg-white text-[#501D2C] hover:bg-rose-100'
+                                      : 'bg-[#C45266] hover:bg-[#b04356] text-white'
+                                  }`}
+                                >
+                                  {isBooked ? (
+                                    <>
+                                      <Check className="w-4 h-4" />
+                                      <span>Booked</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span>Book</span>
+                                      <ArrowUpRight className="w-4 h-4" />
+                                    </>
+                                  )}
+                                </button>
                               </div>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openBookingForService(service);
-                                }}
-                                className="px-4 py-2 rounded-xl bg-[#C45266] hover:bg-[#b04356] text-white text-xs font-bold shadow-lg transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
-                              >
-                                <span>Book</span>
-                                <ArrowUpRight className="w-4 h-4" />
-                              </button>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
                   )}
@@ -233,6 +270,47 @@ export const ServicesShowcase: React.FC = () => {
             );
           })}
         </div>
+
+        {/* Selected Treatments Summary Strip */}
+        {selectedServicesForBooking.length > 0 && (
+          <div className="mt-10 rounded-2xl p-4 sm:p-5 bg-black/35 border border-rose-300/35 backdrop-blur-md shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="min-w-0 space-y-1">
+              <div className="flex items-center gap-2 text-xs font-semibold text-rose-200">
+                <Check className="w-4 h-4 text-rose-300 shrink-0" />
+                <span>
+                  {selectedServicesForBooking.length}{' '}
+                  {selectedServicesForBooking.length === 1 ? 'Treatment' : 'Treatments'} Selected
+                </span>
+                <span aria-hidden="true" className="opacity-50">·</span>
+                <span className="font-mono font-bold text-white tabular-nums">
+                  {sym} {totalSelectedPrice.toLocaleString()}
+                </span>
+              </div>
+              <p className="text-xs text-rose-100/80 truncate">
+                {selectedServicesForBooking.map((s) => s.title).join(' · ')}
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={clearSelectedServices}
+                className="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-rose-100 text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById('booking')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="px-5 py-2.5 rounded-xl bg-[#C45266] hover:bg-[#b04356] text-white text-xs font-bold shadow-lg transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+              >
+                <span>Select Date & Time</span>
+                <ArrowDown className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
     </section>

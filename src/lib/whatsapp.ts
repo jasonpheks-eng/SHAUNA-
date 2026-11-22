@@ -1,7 +1,15 @@
+export interface WhatsAppTreatmentItem {
+  title: string;
+  category?: 'nails' | 'lashes' | 'hair' | string;
+  price?: number;
+}
+
 export interface WhatsAppBookingDetails {
   boutiqueName?: string;
   clientName: string;
   serviceTitle: string;
+  servicesSummary?: string;
+  treatments?: WhatsAppTreatmentItem[];
   category?: 'nails' | 'lashes' | 'hair' | string;
   price?: number;
   currencySymbol?: string;
@@ -11,31 +19,35 @@ export interface WhatsAppBookingDetails {
   notes?: string;
 }
 
+const getCategoryMeta = (catRaw?: string) => {
+  const cat = catRaw?.toLowerCase();
+  if (cat === 'nails') return { label: 'Nails & Manicure', emoji: '💅' };
+  if (cat === 'lashes') return { label: 'Lashes & Brows', emoji: '👁️' };
+  if (cat === 'hair') return { label: 'Hair & Wig Installation', emoji: '💇‍♀️' };
+  return { label: 'Bespoke Beauty', emoji: '✨' };
+};
+
 /**
  * Formats a clean, highly organized, luxury boutique WhatsApp message
- * with emojis, structured sections, bold headers, and styling notes.
+ * with emojis, structured sections, bold headers, itemized treatments, and summed total.
  */
 export function formatAppointmentWhatsAppMessage(details: WhatsAppBookingDetails): string {
   const brand = (details.boutiqueName || 'MT Maison').toUpperCase();
   const sym = details.currencySymbol || 'MWK';
-  const priceFormatted = details.price !== undefined
-    ? `${sym} ${details.price.toLocaleString()}`
+
+  const treatments = Array.isArray(details.treatments) && details.treatments.length > 0
+    ? details.treatments
+    : null;
+
+  const totalAmount = treatments
+    ? treatments.reduce((sum, t) => sum + (Number(t.price) || 0), 0)
+    : details.price;
+
+  const priceFormatted = totalAmount !== undefined
+    ? `${sym} ${totalAmount.toLocaleString()}`
     : 'Price on consultation';
-  
-  // Category badge & icon
-  let categoryLabel = 'Bespoke Beauty';
-  let categoryEmoji = '✨';
-  const cat = details.category?.toLowerCase();
-  if (cat === 'nails') {
-    categoryLabel = 'Nails & Manicure';
-    categoryEmoji = '💅';
-  } else if (cat === 'lashes') {
-    categoryLabel = 'Lashes & Brows';
-    categoryEmoji = '👁️';
-  } else if (cat === 'hair') {
-    categoryLabel = 'Hair & Wig Installation';
-    categoryEmoji = '💇‍♀️';
-  }
+
+  const { label: categoryLabel, emoji: categoryEmoji } = getCategoryMeta(details.category);
 
   // Safe date parsing without UTC offset shifts
   let formattedDate = details.date;
@@ -68,15 +80,43 @@ export function formatAppointmentWhatsAppMessage(details: WhatsAppBookingDetails
     `• *Name:* ${details.clientName}`,
     `• *Booking Reference:* #${details.bookingRef}`,
     ``,
-    `${categoryEmoji} *TREATMENT RESERVED*`,
-    `• *Service:* ${details.serviceTitle}`,
-    `• *Category:* ${categoryLabel}`,
-    `• *Estimated Fee:* ${priceFormatted}`,
+  ];
+
+  if (treatments && treatments.length > 1) {
+    lines.push(`✨ *TREATMENTS RESERVED (${treatments.length})*`);
+    treatments.forEach((t, idx) => {
+      const meta = getCategoryMeta(t.category);
+      const itemPrice = t.price !== undefined ? `${sym} ${Number(t.price).toLocaleString()}` : 'Consultation';
+      lines.push(`${idx + 1}. ${meta.emoji} *${t.title}* — ${itemPrice}`);
+    });
+    lines.push(`• *Total Estimated Fee:* ${priceFormatted}`);
+  } else if (treatments && treatments.length === 1) {
+    const single = treatments[0];
+    const singleMeta = getCategoryMeta(single.category || details.category);
+    const singlePrice = single.price !== undefined
+      ? `${sym} ${Number(single.price).toLocaleString()}`
+      : priceFormatted;
+    lines.push(
+      `${singleMeta.emoji} *TREATMENT RESERVED*`,
+      `• *Service:* ${single.title}`,
+      `• *Category:* ${singleMeta.label}`,
+      `• *Estimated Fee:* ${singlePrice}`
+    );
+  } else {
+    lines.push(
+      `${categoryEmoji} *TREATMENT RESERVED*`,
+      `• *Service:* ${details.servicesSummary || details.serviceTitle}`,
+      `• *Category:* ${categoryLabel}`,
+      `• *Estimated Fee:* ${priceFormatted}`
+    );
+  }
+
+  lines.push(
     ``,
     `🗓️ *SCHEDULED APPOINTMENT*`,
     `• *Date:* ${formattedDate}`,
-    `• *Time Slot:* ${details.timeSlot}`,
-  ];
+    `• *Time Slot:* ${details.timeSlot}`
+  );
 
   if (details.notes && details.notes.trim()) {
     lines.push(

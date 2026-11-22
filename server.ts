@@ -762,21 +762,50 @@ apiRouter.post('/verify-pin', (req: Request, res: Response) => {
 });
 
 apiRouter.post('/appointments', async (req: Request, res: Response) => {
-  const { client_name, client_phone, client_email, service_id, date, time_slot, notes } = req.body;
+  const {
+    client_name,
+    client_phone,
+    client_email,
+    service_id,
+    service_title,
+    services_summary,
+    service_ids,
+    date,
+    time_slot,
+    notes,
+  } = req.body;
 
   if (!client_name || !client_phone || !service_id || !date || !time_slot) {
     return res.status(400).json({ success: false, message: 'Missing required booking fields' });
   }
 
-  const service = store.services.find((s) => s.id === service_id);
+  const normalizedIds = Array.isArray(service_ids) && service_ids.length > 0
+    ? service_ids.map((id: any) => String(id)).slice(0, 20)
+    : [String(service_id)];
+  const matchedServices = normalizedIds
+    .map((id) => store.services.find((s) => s.id === id))
+    .filter((s): s is ServiceItem => Boolean(s));
+  const primaryService = matchedServices[0] || store.services.find((s) => s.id === service_id);
+
+  const computedTitle =
+    typeof service_title === 'string' && service_title.trim()
+      ? service_title.trim().slice(0, 160)
+      : matchedServices.length > 1
+      ? `${matchedServices.length} Treatments: ${matchedServices.map((s) => s.title).join(', ')}`.slice(0, 160)
+      : primaryService?.title || 'Bespoke Consultation';
+
   const newAppointment: Appointment = {
     id: `MT-${Math.floor(10000 + Math.random() * 90000)}`,
     client_name,
     client_phone,
     client_email: client_email || '',
-    service_id,
-    service_title: service?.title || 'Bespoke Consultation',
-    category: service?.category || 'nails',
+    service_id: String(service_id),
+    service_title: computedTitle,
+    ...(typeof services_summary === 'string' && services_summary.trim()
+      ? { services_summary: services_summary.trim().slice(0, 500) }
+      : {}),
+    service_ids: normalizedIds,
+    category: primaryService?.category || 'nails',
     date,
     time_slot,
     notes: notes || '',

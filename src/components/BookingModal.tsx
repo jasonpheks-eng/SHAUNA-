@@ -205,7 +205,16 @@ export const BookingModal: React.FC = () => {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-rose-200/40 uppercase text-[9px] tracking-widest">Fee</span>
-                          <span className="text-white font-bold">{settings.currency_symbol || 'MWK'} {services.find(s => s.id === apt.service_id)?.price?.toLocaleString() || '35,000'}</span>
+                          <span className="text-white font-bold">
+                            {settings.currency_symbol || 'MWK'}{' '}
+                            {(() => {
+                              const ids = Array.isArray(apt.service_ids) && apt.service_ids.length > 0 ? apt.service_ids : [apt.service_id];
+                              const total = ids
+                                .map((id) => services.find((s) => s.id === id)?.price || 0)
+                                .reduce((sum, p) => sum + p, 0);
+                              return (total || 35000).toLocaleString();
+                            })()}
+                          </span>
                         </div>
                         <div className="flex justify-between items-center pt-2 border-t border-white/5">
                           <span className="text-rose-200/40 uppercase text-[9px] tracking-widest font-bold">Ref No.</span>
@@ -227,13 +236,23 @@ export const BookingModal: React.FC = () => {
 
                         <button
                           onClick={() => {
-                            const aptService = services.find(s => s.id === apt.service_id);
+                            const ids = Array.isArray(apt.service_ids) && apt.service_ids.length > 0 ? apt.service_ids : [apt.service_id];
+                            const matchedTreatments = ids
+                              .map((id) => services.find((s) => s.id === id))
+                              .filter((s): s is NonNullable<typeof s> => Boolean(s));
+                            const total = matchedTreatments.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
                             const waText = formatAppointmentWhatsAppMessage({
                               boutiqueName: settings.boutique_name,
                               clientName: apt.client_name,
                               serviceTitle: apt.service_title,
+                              servicesSummary: apt.services_summary,
+                              treatments: matchedTreatments.map((s) => ({
+                                title: s.title,
+                                category: s.category,
+                                price: s.price,
+                              })),
                               category: apt.category,
-                              price: aptService?.price,
+                              price: total || services.find((s) => s.id === apt.service_id)?.price,
                               currencySymbol: settings.currency_symbol,
                               date: apt.date,
                               timeSlot: apt.time_slot,

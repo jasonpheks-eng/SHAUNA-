@@ -153,6 +153,8 @@
         "client_email": { "type": "string", "maxLength": 254 },
         "service_id": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
         "service_title": { "type": "string", "maxLength": 160 },
+        "services_summary": { "type": "string", "maxLength": 500 },
+        "service_ids": { "type": "array", "description": "Bounded list of selected treatment IDs (max 20)." },
         "category": { "type": "string", "enum": ["nails", "lashes", "hair"] },
         "date": { "type": "string", "maxLength": 20, "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
         "time_slot": { "type": "string", "maxLength": 32 },

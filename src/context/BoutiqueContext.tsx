@@ -62,6 +62,8 @@ interface BoutiqueContextType {
   adminInitialTab: 'info' | 'colors' | 'images' | 'services' | 'slots' | 'calendar' | 'bookings' | 'supabase';
   isBookingModalOpen: boolean;
   selectedServiceForBooking: ServiceItem | null;
+  selectedServiceIdsForBooking: string[];
+  selectedServicesForBooking: ServiceItem[];
   selectionTrigger: number; // Timestamp to force sync
   isSearchOpen: boolean;
   isFavoritesOpen: boolean;
@@ -73,6 +75,9 @@ interface BoutiqueContextType {
   toggleFavorite: (serviceId: string) => void;
   canUndo: boolean;
   undoLastChange: () => Promise<boolean>;
+  toggleServiceSelection: (service: ServiceItem) => void;
+  removeServiceSelection: (serviceId: string) => void;
+  clearSelectedServices: () => void;
   openBookingForService: (service?: ServiceItem) => void;
   closeBooking: () => void;
   openAdmin: (initialTab?: 'info' | 'colors' | 'images' | 'services' | 'slots' | 'supabase' | any) => void;
@@ -159,6 +164,7 @@ export const BoutiqueProvider: React.FC<{ children: ReactNode }> = ({ children }
   >('info');
   const [isBookingModalOpen, setIsBookingModalOpen] = useState<boolean>(false);
   const [selectedServiceForBooking, setSelectedServiceForBooking] = useState<ServiceItem | null>(null);
+  const [selectedServiceIdsForBooking, setSelectedServiceIdsForBooking] = useState<string[]>([]);
   const [selectionTrigger, setSelectionTrigger] = useState<number>(0);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [isFavoritesOpen, setIsFavoritesOpen] = useState<boolean>(false);
@@ -845,9 +851,44 @@ export const BoutiqueProvider: React.FC<{ children: ReactNode }> = ({ children }
   }, [fetchBootstrap, handleRealtimeMessage]);
 
   // Actions
+  const selectedServicesForBooking = React.useMemo(() => {
+    const activeMap = new Map<string, ServiceItem>();
+    (services || []).forEach((s) => {
+      if (s.is_active !== false) activeMap.set(s.id, s);
+    });
+    return selectedServiceIdsForBooking
+      .map((id) => activeMap.get(id))
+      .filter((s): s is ServiceItem => Boolean(s));
+  }, [services, selectedServiceIdsForBooking]);
+
+  const toggleServiceSelection = useCallback((service: ServiceItem) => {
+    setSelectedServiceIdsForBooking((prev) => {
+      if (prev.includes(service.id)) {
+        return prev.filter((id) => id !== service.id);
+      }
+      return [...prev, service.id];
+    });
+    setSelectedServiceForBooking(service);
+  }, []);
+
+  const removeServiceSelection = useCallback((serviceId: string) => {
+    setSelectedServiceIdsForBooking((prev) => prev.filter((id) => id !== serviceId));
+  }, []);
+
+  const clearSelectedServices = useCallback(() => {
+    setSelectedServiceIdsForBooking([]);
+    setSelectedServiceForBooking(null);
+  }, []);
+
   const openBookingForService = (service?: ServiceItem) => {
-    const targetService = service || services[0] || null;
-    setSelectedServiceForBooking(targetService);
+    if (service) {
+      setSelectedServiceIdsForBooking((prev) =>
+        prev.includes(service.id) ? prev : [...prev, service.id]
+      );
+      setSelectedServiceForBooking(service);
+    } else if (selectedServiceIdsForBooking.length === 0 && services[0]) {
+      setSelectedServiceForBooking(services[0]);
+    }
     setSelectionTrigger(Date.now());
     setIsBookingModalOpen(false);
 
@@ -1568,6 +1609,8 @@ export const BoutiqueProvider: React.FC<{ children: ReactNode }> = ({ children }
         adminInitialTab,
         isBookingModalOpen,
         selectedServiceForBooking,
+        selectedServiceIdsForBooking,
+        selectedServicesForBooking,
         selectionTrigger,
         isSearchOpen,
         isFavoritesOpen,
@@ -1579,6 +1622,9 @@ export const BoutiqueProvider: React.FC<{ children: ReactNode }> = ({ children }
         toggleFavorite,
         canUndo: historyStack.length > 0,
         undoLastChange,
+        toggleServiceSelection,
+        removeServiceSelection,
+        clearSelectedServices,
         openBookingForService,
         closeBooking,
         openAdmin,
