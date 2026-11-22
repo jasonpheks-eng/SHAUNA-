@@ -12,8 +12,8 @@ export const defaultSettings: BoutiqueSettings = {
   tagline: 'Where Beauty Meets Elegance',
   hero_description:
     'Welcome to MT Maison, your beauty destination for flawless nails, beautiful wig installations and stunning lashes. We help you look good, feel confident and express your unique style.',
-  address: '142 Luxury Lane, Suite 4B',
-  city_region: 'Mayfair, London',
+  address: 'Malawi, Blantyre',
+  city_region: 'Machinjiri, Area 7',
   opening_hours: 'Tue – Sat: 10:00 AM – 7:30 PM | Sun: 11:00 AM – 5:00 PM',
   currency_symbol: 'MWK',
   currency_code: 'MWK',

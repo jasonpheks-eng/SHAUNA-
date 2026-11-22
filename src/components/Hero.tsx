@@ -197,7 +197,13 @@ export const Hero: React.FC = () => {
             
             <div className="flex flex-col gap-6 w-full sm:w-auto">
               <button
-                onClick={() => openBookingForService()}
+                type="button"
+                onClick={() => {
+                  const servicesEl = document.getElementById('services');
+                  if (servicesEl) {
+                    servicesEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }}
                 className="bg-white text-black w-full sm:w-fit px-8 py-5 sm:px-12 sm:py-6 text-xs sm:text-sm font-extrabold uppercase tracking-[0.3em] sm:tracking-[0.4em] hover:bg-[#FF5B9E] hover:text-white transition-all cursor-crosshair rounded-full shadow-2xl active:scale-95"
               >
                 {settings.hero_button_text || 'Reserve Your Slot'}

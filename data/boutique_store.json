@@ -23,8 +23,8 @@
     "whatsapp_number": "+265 888 38 29 38",
     "boutique_name": "MT Mansion",
     "tagline": "Where Beauty Meets Elegance",
-    "address": "142 Luxury Lane, Suite 4B",
-    "city_region": "Mayfair, London",
+    "address": "Malawi, Blantyre",
+    "city_region": "Machinjiri, Area 7",
     "opening_hours": "Tue – Sat: 10:00 AM – 7:30 PM | Sun: 11:00 AM – 5:00 PM",
     "currency_symbol": "MWK",
     "currency_code": "MWK",
@@ -362,5 +362,5 @@
       "created_at": "2026-11-06T10:33:49.513Z"
     }
   ],
-  "updatedAt": 1795351465000
+  "updatedAt": 1795353640000
 }

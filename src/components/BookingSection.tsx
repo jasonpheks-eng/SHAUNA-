@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useBoutique } from '../context/BoutiqueContext';
-import { ServiceItem } from '../types';
+import { ServiceItem, Appointment } from '../types';
 import { GooeyGradientBackground } from './GooeyGradientBackground';
 import { formatAppointmentWhatsAppMessage, buildWhatsAppUrl } from '../lib/whatsapp';
 import { buildGoogleCalendarWebLink } from '../lib/googleCalendar';
@@ -74,7 +74,6 @@ export const BookingSection: React.FC = () => {
     removeServiceSelection,
     clearSelectedServices,
     selectionTrigger,
-    appointments,
   } = useBoutique();
 
   const sym = settings.currency_symbol || 'MWK';
@@ -149,8 +148,9 @@ export const BookingSection: React.FC = () => {
 
   // Status State
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [confirmedBooking, setConfirmedBooking] = useState<any | null>(null);
+  const [confirmedBooking, setConfirmedBooking] = useState<Appointment | null>(null);
   const [confirmedTreatments, setConfirmedTreatments] = useState<ServiceItem[]>([]);
+  const [sentBookings, setSentBookings] = useState<Appointment[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   // Formatted Selected Date Label
@@ -205,6 +205,7 @@ export const BookingSection: React.FC = () => {
 
       setConfirmedTreatments(bookedTreatments);
       setConfirmedBooking(appointment);
+      setSentBookings((prev) => [appointment, ...prev.filter((b) => b.id !== appointment.id)]);
 
       // Organized WhatsApp Message with every booked treatment & summed total
       const waText = formatAppointmentWhatsAppMessage({
@@ -365,6 +366,38 @@ export const BookingSection: React.FC = () => {
                 Book Another
               </button>
             </div>
+
+            {sentBookings.length > 0 && (
+              <div id="my-bookings-section" className="pt-6 border-t border-white/10 text-left animate-in slide-in-from-bottom-4 duration-500">
+                <h3 className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-rose-200 mb-4 px-1">
+                  4. My Bookings
+                </h3>
+                <div className="space-y-3">
+                  {sentBookings.map((apt) => (
+                    <div key={apt.id} className="p-4 rounded-2xl bg-black/20 border border-white/5 text-xs text-rose-100 relative group hover:bg-black/30 transition-colors">
+                      <div className="flex justify-between font-bold text-white mb-1 pr-8">
+                        <span className="truncate">{apt.services_summary || apt.service_title}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSentBookings((prev) => prev.filter((item) => item.id !== apt.id));
+                            removeAppointment(apt.id);
+                          }}
+                          className="absolute top-4 right-4 text-rose-300/50 hover:text-white transition-colors p-1"
+                          title="Delete booking"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="opacity-70 flex items-center gap-1.5 mt-1">
+                        <CalendarIcon className="w-3 h-3" />
+                        <span>{apt.date} at {apt.time_slot}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           /* Streamlined 2-Column Booking Layout with Visual Calendar */
@@ -718,19 +751,23 @@ export const BookingSection: React.FC = () => {
                 </button>
               </form>
 
-              {/* Step 4: My Bookings */}
-              {appointments.length > 0 && (
+              {/* Step 4: My Bookings - Only visible after a WhatsApp booking request is sent */}
+              {sentBookings.length > 0 && (
                 <div id="my-bookings-section" className="pt-6 border-t border-white/10 animate-in slide-in-from-bottom-4 duration-500">
                   <h3 className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-rose-200 mb-4 px-1">
                     4. My Bookings
                   </h3>
                   <div className="space-y-3">
-                    {appointments.slice(0, 3).map((apt) => (
+                    {sentBookings.map((apt) => (
                       <div key={apt.id} className="p-4 rounded-2xl bg-black/20 border border-white/5 text-xs text-rose-100 relative group hover:bg-black/30 transition-colors">
                         <div className="flex justify-between font-bold text-white mb-1 pr-8">
                           <span className="truncate">{apt.services_summary || apt.service_title}</span>
                           <button
-                            onClick={() => removeAppointment(apt.id)}
+                            type="button"
+                            onClick={() => {
+                              setSentBookings((prev) => prev.filter((item) => item.id !== apt.id));
+                              removeAppointment(apt.id);
+                            }}
                             className="absolute top-4 right-4 text-rose-300/50 hover:text-white transition-colors p-1"
                             title="Delete booking"
                           >
