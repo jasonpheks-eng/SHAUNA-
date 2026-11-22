@@ -36,12 +36,11 @@ export const ServicesShowcase: React.FC = () => {
   ];
 
   const activeCategories = allCategories.filter((cat) =>
-    (services || []).some((s) => s.category === cat.id)
+    (services || []).some((s) => s.category === cat.id && s.is_active !== false)
   );
   const categories = activeCategories.length > 0 ? activeCategories : allCategories;
 
   const handleCardClick = (cat: any) => {
-    // Toggle treatment menu expansion for this card
     if (expandedCategory === cat.id) {
       setExpandedCategory(null);
     } else {
@@ -83,11 +82,11 @@ export const ServicesShowcase: React.FC = () => {
           </p>
         </div>
 
-        {/* Showcase Cards with Inline Select Treatments Menu */}
+        {/* Showcase Cards */}
         <div className={`grid grid-cols-1 gap-8 items-start ${categories.length === 2 ? 'md:grid-cols-2 max-w-5xl mx-auto' : 'md:grid-cols-3'}`}>
           {categories.map((cat) => {
             const cardImgStyle = getImageStyleAndClasses(cat.slotKey, imageSlots.configs, 'aspect-[4/3]', 'object-cover');
-            const catServices = (services || []).filter((s) => s.category === cat.id);
+            const catServices = (services || []).filter((s) => s.category === cat.id && s.is_active !== false);
             const isExpanded = expandedCategory === cat.id;
 
             return (
@@ -110,7 +109,6 @@ export const ServicesShowcase: React.FC = () => {
                     referrerPolicy="no-referrer"
                   />
                   
-                  {/* Translucent Glassy Overlay with View Treatments Button */}
                   <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] group-hover:bg-black/35 transition-colors duration-500 flex items-center justify-center">
                     <div className="bg-white/20 hover:bg-white/35 text-white backdrop-blur-md border border-white/40 px-5 py-2.5 rounded-full font-bold text-xs uppercase tracking-widest shadow-2xl transition-all duration-300 flex items-center gap-2">
                       <span>{isExpanded ? 'Hide Menu' : 'Select Treatments'}</span>
@@ -151,7 +149,7 @@ export const ServicesShowcase: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Interactive Select Treatments Menu inside Card */}
+                {/* Interactive Select Treatments Menu */}
                 <div className="mt-4 pt-3 border-t border-white/10 space-y-2.5">
                   <button
                     type="button"
@@ -206,7 +204,7 @@ export const ServicesShowcase: React.FC = () => {
                             <div className="flex items-center justify-between gap-3 pt-2 border-t border-white/10 shrink-0">
                               <div className="font-mono text-left">
                                 <span className="text-sm font-bold text-white">
-                                  {settings.currency_symbol || 'MWK'} {service.price ? service.price.toLocaleString() : 0}
+                                  {service.id === 'hair-blowout' ? 'MK' : (settings.currency_symbol || 'MWK')} {service.price ? service.price.toLocaleString() : 0}
                                 </span>
                                 {!service.hide_duration && service.duration_min > 0 && (
                                   <span className="block text-[10px] text-rose-300 opacity-90">{service.duration_min} mins</span>

@@ -261,7 +261,7 @@
       "number": "15",
       "title": "Wig Installation and Custom Styling",
       "description": "Bespoke lace customization, seamless skin melt, secure installation, and precision thermal styling for a flawless, natural silhouette.",
-      "price": 25,000,
+      "price": 25000,
       "duration_min": 0,
       "hide_duration": true,
       "is_active": true
@@ -362,5 +362,5 @@
       "created_at": "2026-11-06T10:33:49.513Z"
     }
   ],
-  "updatedAt": 1795289146181
+  "updatedAt": 1795351465000
 }

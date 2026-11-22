@@ -993,6 +993,8 @@ export const BoutiqueProvider: React.FC<{ children: ReactNode }> = ({ children }
         client_email: data.client_email || '',
         service_id: data.service_id,
         service_title: data.service_title || service?.title || 'Bespoke Consultation',
+        services_summary: data.services_summary || '',
+        service_ids: data.service_ids || [data.service_id],
         category: data.category || service?.category || 'nails',
         date: data.date,
         time_slot: data.time_slot,

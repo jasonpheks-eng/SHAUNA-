@@ -5,6 +5,8 @@ export interface Appointment {
   client_email?: string;
   service_id: string;
   service_title: string;
+  services_summary?: string;
+  service_ids?: string[];
   category: 'nails' | 'lashes' | 'hair';
   date: string; // YYYY-MM-DD
   time_slot: string;

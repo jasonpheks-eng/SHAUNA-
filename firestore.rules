@@ -177,7 +177,7 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'id', 'clientUid', 'client_name', 'client_phone', 'client_email',
-          'service_id', 'service_title', 'category', 'date', 'time_slot',
+          'service_id', 'service_title', 'services_summary', 'service_ids', 'category', 'date', 'time_slot',
           'notes', 'status', 'createdAt', 'updatedAt'
         ])
         && isValidId(data.id)
@@ -187,6 +187,8 @@ service cloud.firestore {
         && (!('client_email' in data) || (data.client_email is string && data.client_email.size() <= 254))
         && isValidId(data.service_id)
         && data.service_title is string && data.service_title.size() > 0 && data.service_title.size() <= 160
+        && (!('services_summary' in data) || (data.services_summary is string && data.services_summary.size() <= 500))
+        && (!('service_ids' in data) || (data.service_ids is list && data.service_ids.size() <= 20))
         && data.category in ['nails', 'lashes', 'hair']
         && data.date is string && data.date.size() == 10 && data.date.matches('^\\d{4}-\\d{2}-\\d{2}$')
         && data.time_slot is string && data.time_slot.size() > 0 && data.time_slot.size() <= 32

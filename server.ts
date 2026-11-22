@@ -40,7 +40,7 @@ if (!fs.existsSync(dataDir)) {
   } catch (e) {}
 }
 const storeFilePath = path.join(dataDir, 'boutique_store.json');
-const BUNDLED_UPDATED_AT = 1795289146181;
+const BUNDLED_UPDATED_AT = 1795351465000;
 
 // Default Initial Data matching current published boutique configuration
 const defaultSettings: BoutiqueSettings = {
@@ -297,7 +297,7 @@ const defaultServices: ServiceItem[] = [
     number: '15',
     title: 'Wig Installation and Custom Styling',
     description: 'Bespoke lace customization, seamless skin melt, secure installation, and precision thermal styling for a flawless, natural silhouette.',
-    price: 60000,
+    price: 25000,
     duration_min: 0,
     hide_duration: true,
     is_active: true,

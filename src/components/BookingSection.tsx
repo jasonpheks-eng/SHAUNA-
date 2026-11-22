@@ -81,6 +81,8 @@ export const BookingSection: React.FC = () => {
     appointments,
   } = useBoutique();
 
+  const sym = settings.currency_symbol || 'MWK';
+
   // Collapsible Treatment Selection Menu
   const [isTreatmentMenuOpen, setIsTreatmentMenuOpen] = useState<boolean>(false);
   const [isItineraryOpen, setIsItineraryOpen] = useState<boolean>(false);
@@ -100,13 +102,10 @@ export const BookingSection: React.FC = () => {
     selectedServiceForBooking?.id || (services && services[0]?.id) || ''
   );
 
-  // Robust useEffect to sync whenever a selection is triggered from context
   React.useEffect(() => {
     if (selectedServiceForBooking) {
       setSelectedServiceId(selectedServiceForBooking.id);
-      setIsTreatmentMenuOpen(false); // Close the menu so the Chosen Treatment card is displayed cleanly!
-      
-      // Auto-scroll to booking section
+      setIsTreatmentMenuOpen(false);
       const bookingEl = document.getElementById('booking');
       if (bookingEl && selectionTrigger > 0) {
         bookingEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -198,7 +197,7 @@ export const BookingSection: React.FC = () => {
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientName.trim() || !selectedService) {
-      setErrorMessage('Please enter your name.');
+      setErrorMessage('Please enter your name and select a treatment.');
       return;
     }
     setErrorMessage('');
@@ -534,7 +533,7 @@ export const BookingSection: React.FC = () => {
                               className="font-bold text-white text-sm"
                               style={{ fontFamily: 'monospace' }}
                             >
-                              {settings.currency_symbol || 'MWK'} {selectedService.price ? selectedService.price.toLocaleString() : 0}
+                              {sym} {selectedService.price ? selectedService.price.toLocaleString() : 0}
                             </span>
                             {!selectedService.hide_duration && selectedService.duration_min > 0 && (
                               <>
@@ -627,7 +626,7 @@ export const BookingSection: React.FC = () => {
                               type="button"
                               onClick={() => {
                                 setSelectedServiceId(service.id);
-                                setIsTreatmentMenuOpen(false); // Collapses menu to show chosen treatment!
+                                setIsTreatmentMenuOpen(false);
                               }}
                               className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
                                 isSelected
@@ -659,7 +658,7 @@ export const BookingSection: React.FC = () => {
 
                               <div className="flex items-center gap-4 shrink-0">
                                 <div className="text-right font-mono">
-                                  <span className="text-sm sm:text-base font-bold text-white">{settings.currency_symbol || 'MWK'} {service.price ? service.price.toLocaleString() : 0}</span>
+                                  <span className="text-sm sm:text-base font-bold text-white">{sym} {service.price ? service.price.toLocaleString() : 0}</span>
                                   {!service.hide_duration && service.duration_min > 0 && (
                                     <span className="block text-[10px] text-rose-200 opacity-80 mt-0.5">{service.duration_min}m</span>
                                   )}
@@ -798,7 +797,7 @@ export const BookingSection: React.FC = () => {
                     )}
                     <div className="flex justify-between items-center gap-4 text-rose-200 pt-3 border-t border-white/10">
                       <span className="uppercase tracking-widest text-[9px] font-bold opacity-70 shrink-0">Total Fee</span>
-                      <span className="text-white font-bold text-base">{settings.currency_symbol || 'MWK'} {selectedService.price ? selectedService.price.toLocaleString() : 0}</span>
+                      <span className="text-white font-bold text-base">{sym} {selectedService.price ? selectedService.price.toLocaleString() : 0}</span>
                     </div>
                   </div>
                 )}
